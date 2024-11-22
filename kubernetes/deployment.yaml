@@ -1,0 +1,64 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: laravel-deployment
+  labels:
+    app: laravel
+spec:
+  selector:
+    matchLabels:
+      app: laravel
+  replicas: 3
+  template:
+    metadata:
+      labels:
+        app: laravel
+    spec:
+      containers:
+        - name: laravel
+          image: your-laravel-app:latest
+          ports:
+            - containerPort: 9000
+          resources:
+            requests:
+              cpu: 100m
+              memory: 100Mi
+          env:
+            - name: DB_HOST
+              valueFrom:
+                secretKeyRef:
+                  name: mysql-secret
+                  key: host
+            - name: DB_DATABASE
+              valueFrom:
+                secretKeyRef:
+                  name: mysql-secret
+                  key: database
+            - name: DB_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: mysql-secret
+                  key: username
+            - name: DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: mysql-secret
+                  key: password
+          volumeMounts:
+            - name: app-storage
+              mountPath: /var/www/html/storage
+        - name: nginx
+          image: nginx:alpine
+          ports:
+            - containerPort: 80
+          volumeMounts:
+            - name: nginx-config
+              mountPath: /etc/nginx/nginx.conf
+              subPath: nginx.conf
+      volumes:
+        - name: app-storage
+          persistentVolumeClaim:
+            claimName: laravel-pvc
+        - name: nginx-config
+          configMap:
+            name: nginx-config
